@@ -1,26 +1,64 @@
 <template>
-  <img alt="Vue logo" src="./assets/logo.png">
-  <HelloWorld msg="Welcome to Your Vue.js App"/>
+  <div class="row m-4">
+    <template v-if="!error">
+      <div class="col-8">
+        <tree-view
+          v-if="treeData.value"
+          :data="treeData.value"
+          :label-class-name="labelClassName"
+          @node-click="(event, node) => nodeClicked(event, node)"
+        />
+      </div>
+      <div class="col-4">
+        <detail-view
+          :node="selectedNode"
+          @close="deselectNode()"
+        />
+      </div>
+    </template>
+    <template v-else>Service Error : {{ error }}</template>
+  </div>
 </template>
 
-<script>
-import HelloWorld from './components/HelloWorld.vue'
+<script setup>
+import TreeView from '@/components/TreeView/TreeView.vue';
+import DetailView from '@/components/DetailView/DetailView.vue';
+import { ref, reactive, onMounted } from 'vue';
+import { getData } from '@/services/treeDataServices/treeDataServices.js';
+import { convert } from '@//utils/convertor';
 
-export default {
-  name: 'App',
-  components: {
-    HelloWorld
+const treeData = reactive([]);
+const selectedNode = ref({});
+let error = ref(null);
+
+const nodeClicked = (event, node) => node.name !== selectedNode.value.name ? selectNode(node) : deselectNode();
+
+const selectNode = (node) => selectedNode.value = node;
+
+const deselectNode = () => selectedNode.value = {};
+
+const labelClassName = (node) => node.name === selectedNode.value.name ? 'node selected-node' : 'node';
+
+const getTreeData = async () => {
+  try {
+    const data = await getData();
+    treeData.value = convert(data);
+  }
+  catch (err) {
+    error.value = err;
   }
 }
+
+onMounted(async() => {
+  await getTreeData();
+});
 </script>
 
 <style>
-#app {
-  font-family: Avenir, Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-align: center;
-  color: #2c3e50;
-  margin-top: 60px;
+.selected-node {
+  border: 2px black solid;
+}
+.node {
+  cursor: pointer;
 }
 </style>
